@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: admin
+    description: Database-verified administrative operations
 paths:
   /healthz:
     get:
@@ -24,7 +26,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /admin/status:
+    get:
+      operationId: getAdminStatus
+      tags: [admin]
+      summary: Verify the caller's admin role
+      description: Verifies the Supabase JWT and checks the caller's role in the database.
+      security:
+        - supabaseBearerAuth: []
+      responses:
+        "200":
+          description: Caller is an administrator
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStatus"
+        "401":
+          description: Missing or invalid Supabase access token
+        "403":
+          description: Caller is authenticated but is not an administrator
 components:
+  securitySchemes:
+    supabaseBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +59,11 @@ components:
           type: string
       required:
         - status
+    AdminStatus:
+      type: object
+      properties:
+        isAdmin:
+          type: boolean
+      required:
+        - isAdmin
 

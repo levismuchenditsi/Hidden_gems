@@ -1,0 +1,181 @@
+INSERT INTO public.countries (code, name, currency_code, timezone)
+VALUES ('KE', 'Kenya', 'KES', 'Africa/Nairobi')
+ON CONFLICT (code) DO UPDATE
+SET name = EXCLUDED.name,
+    currency_code = EXCLUDED.currency_code,
+    timezone = EXCLUDED.timezone,
+    updated_at = now();
+
+INSERT INTO public.categories (name, slug, description, icon)
+VALUES
+  ('Nature', 'nature', 'Forests, viewpoints, and quiet natural spaces.', 'trees'),
+  ('Waterfalls', 'waterfalls', 'Waterfalls, rivers, and swimming spots.', 'waves'),
+  ('Coast & Islands', 'coast-islands', 'Beaches, islands, and coastal hideaways.', 'sun'),
+  ('Culture & Heritage', 'culture-heritage', 'Historic places, local culture, and heritage.', 'landmark'),
+  ('Food & Markets', 'food-markets', 'Local food stops, markets, and small producers.', 'utensils'),
+  ('Hiking & Adventure', 'hiking-adventure', 'Trails, climbs, and outdoor activities.', 'mountain'),
+  ('Wildlife', 'wildlife', 'Wildlife areas and responsible animal experiences.', 'paw-print'),
+  ('Stays', 'stays', 'Distinctive locally owned places to stay.', 'bed')
+ON CONFLICT (slug) DO UPDATE
+SET name = EXCLUDED.name,
+    description = EXCLUDED.description,
+    icon = EXCLUDED.icon,
+    updated_at = now();
+
+WITH county_seed(code, name) AS (
+  VALUES
+    ('001', 'Mombasa'),
+    ('002', 'Kwale'),
+    ('003', 'Kilifi'),
+    ('004', 'Tana River'),
+    ('005', 'Lamu'),
+    ('006', 'Taita-Taveta'),
+    ('007', 'Garissa'),
+    ('008', 'Wajir'),
+    ('009', 'Mandera'),
+    ('010', 'Marsabit'),
+    ('011', 'Isiolo'),
+    ('012', 'Meru'),
+    ('013', 'Tharaka-Nithi'),
+    ('014', 'Embu'),
+    ('015', 'Kitui'),
+    ('016', 'Machakos'),
+    ('017', 'Makueni'),
+    ('018', 'Nyandarua'),
+    ('019', 'Nyeri'),
+    ('020', 'Kirinyaga'),
+    ('021', 'Murang''a'),
+    ('022', 'Kiambu'),
+    ('023', 'Turkana'),
+    ('024', 'West Pokot'),
+    ('025', 'Samburu'),
+    ('026', 'Trans Nzoia'),
+    ('027', 'Uasin Gishu'),
+    ('028', 'Elgeyo-Marakwet'),
+    ('029', 'Nandi'),
+    ('030', 'Baringo'),
+    ('031', 'Laikipia'),
+    ('032', 'Nakuru'),
+    ('033', 'Narok'),
+    ('034', 'Kajiado'),
+    ('035', 'Kericho'),
+    ('036', 'Bomet'),
+    ('037', 'Kakamega'),
+    ('038', 'Vihiga'),
+    ('039', 'Bungoma'),
+    ('040', 'Busia'),
+    ('041', 'Siaya'),
+    ('042', 'Kisumu'),
+    ('043', 'Homa Bay'),
+    ('044', 'Migori'),
+    ('045', 'Kisii'),
+    ('046', 'Nyamira'),
+    ('047', 'Nairobi City')
+)
+INSERT INTO public.counties (country_id, code, name)
+SELECT country.id, county_seed.code, county_seed.name
+FROM county_seed
+CROSS JOIN public.countries country
+WHERE country.code = 'KE'
+ON CONFLICT (country_id, code) DO UPDATE
+SET name = EXCLUDED.name,
+    updated_at = now();
+
+WITH town_seed(county_name, town_name) AS (
+  VALUES
+    ('Mombasa', 'Mombasa'),
+    ('Mombasa', 'Likoni'),
+    ('Mombasa', 'Shanzu'),
+    ('Kwale', 'Kwale'),
+    ('Kwale', 'Ukunda'),
+    ('Kwale', 'Diani'),
+    ('Kwale', 'Msambweni'),
+    ('Kilifi', 'Kilifi'),
+    ('Kilifi', 'Malindi'),
+    ('Kilifi', 'Watamu'),
+    ('Kilifi', 'Mtwapa'),
+    ('Tana River', 'Hola'),
+    ('Tana River', 'Garsen'),
+    ('Lamu', 'Lamu'),
+    ('Lamu', 'Mpeketoni'),
+    ('Taita-Taveta', 'Voi'),
+    ('Taita-Taveta', 'Wundanyi'),
+    ('Taita-Taveta', 'Taveta'),
+    ('Garissa', 'Garissa'),
+    ('Garissa', 'Dadaab'),
+    ('Wajir', 'Wajir'),
+    ('Mandera', 'Mandera'),
+    ('Marsabit', 'Marsabit'),
+    ('Marsabit', 'Moyale'),
+    ('Isiolo', 'Isiolo'),
+    ('Meru', 'Meru'),
+    ('Meru', 'Maua'),
+    ('Tharaka-Nithi', 'Kathwana'),
+    ('Tharaka-Nithi', 'Chuka'),
+    ('Embu', 'Embu'),
+    ('Embu', 'Runyenjes'),
+    ('Kitui', 'Kitui'),
+    ('Kitui', 'Mwingi'),
+    ('Machakos', 'Machakos'),
+    ('Machakos', 'Athi River'),
+    ('Machakos', 'Kangundo'),
+    ('Makueni', 'Wote'),
+    ('Makueni', 'Emali'),
+    ('Nyandarua', 'Ol Kalou'),
+    ('Nyandarua', 'Engineer'),
+    ('Nyeri', 'Nyeri'),
+    ('Nyeri', 'Nanyuki'),
+    ('Kirinyaga', 'Kerugoya'),
+    ('Kirinyaga', 'Kutus'),
+    ('Murang''a', 'Murang''a'),
+    ('Murang''a', 'Kenol'),
+    ('Kiambu', 'Kiambu'),
+    ('Kiambu', 'Thika'),
+    ('Kiambu', 'Limuru'),
+    ('Turkana', 'Lodwar'),
+    ('Turkana', 'Lokichar'),
+    ('West Pokot', 'Kapenguria'),
+    ('Samburu', 'Maralal'),
+    ('Trans Nzoia', 'Kitale'),
+    ('Uasin Gishu', 'Eldoret'),
+    ('Elgeyo-Marakwet', 'Iten'),
+    ('Nandi', 'Kapsabet'),
+    ('Baringo', 'Kabarnet'),
+    ('Baringo', 'Eldama Ravine'),
+    ('Laikipia', 'Nanyuki'),
+    ('Laikipia', 'Rumuruti'),
+    ('Nakuru', 'Nakuru'),
+    ('Nakuru', 'Naivasha'),
+    ('Nakuru', 'Gilgil'),
+    ('Narok', 'Narok'),
+    ('Narok', 'Maasai Mara'),
+    ('Kajiado', 'Kajiado'),
+    ('Kajiado', 'Ngong'),
+    ('Kajiado', 'Kitengela'),
+    ('Kericho', 'Kericho'),
+    ('Bomet', 'Bomet'),
+    ('Kakamega', 'Kakamega'),
+    ('Kakamega', 'Mumias'),
+    ('Vihiga', 'Mbale'),
+    ('Bungoma', 'Bungoma'),
+    ('Bungoma', 'Webuye'),
+    ('Busia', 'Busia'),
+    ('Busia', 'Malaba'),
+    ('Siaya', 'Siaya'),
+    ('Siaya', 'Bondo'),
+    ('Kisumu', 'Kisumu'),
+    ('Homa Bay', 'Homa Bay'),
+    ('Migori', 'Migori'),
+    ('Migori', 'Rongo'),
+    ('Kisii', 'Kisii'),
+    ('Nyamira', 'Nyamira'),
+    ('Nairobi City', 'Nairobi')
+)
+INSERT INTO public.towns (county_id, name)
+SELECT county.id, town_seed.town_name
+FROM town_seed
+JOIN public.counties county ON county.name = town_seed.county_name
+JOIN public.countries country ON country.id = county.country_id
+WHERE country.code = 'KE'
+ON CONFLICT (county_id, name) DO UPDATE
+SET updated_at = now();
