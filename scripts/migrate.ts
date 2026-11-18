@@ -5,12 +5,9 @@ import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 
 const databaseUrl = process.env.SUPABASE_DB_URL;
-const databaseSslCertificate = process.env.SUPABASE_DB_SSL_CERT?.replace(
-  /\\+r\\+n/g,
-  "\n",
-)
-  .replace(/\\+n/g, "\n")
-  .trim();
+const databaseSslCertificateBase64 = process.env.SUPABASE_DB_SSL_CERT_B64;
+const expectedCertificateFingerprint =
+  "80:70:25:AD:50:D4:ED:21:9D:2C:9C:7D:29:9C:00:4F:82:4E:B0:0C:F7:F6:5A:FE:F6:07:D0:7B:72:E6:CA:FA";
 const migrationDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../supabase/migrations",
@@ -30,17 +27,81 @@ function getErrorCode(error: unknown): string | undefined {
 
 function useVerifiedTlsUrl(connectionString: string): string {
   const url = new URL(connectionString);
-  for (const parameter of [
-    "ssl",
-    "sslmode",
-    "sslcert",
-    "sslkey",
-    "sslrootcert",
-    "uselibpqcompat",
-  ]) {
-    url.searchParams.delete(parameter);
+  for (const parameter of [...url.searchParams.keys()]) {
+    const normalizedParameter = parameter.toLowerCase();
+    if (
+      normalizedParameter.startsWith("ssl") ||
+      normalizedParameter === "uselibpqcompat"
+    ) {
+      url.searchParams.delete(parameter);
+    }
   }
   return url.toString();
+}
+
+function getVerifiedDatabaseCertificate(): string | undefined {
+  if (!databaseSslCertificateBase64) {
+    console.error(
+      "Missing required environment variable SUPABASE_DB_SSL_CERT_B64.",
+    );
+    return undefined;
+  }
+
+  const encodedCertificate = databaseSslCertificateBase64.replace(/\s/g, "");
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(encodedCertificate)) {
+    console.error("SUPABASE_DB_SSL_CERT_B64 is not valid Base64.");
+    return undefined;
+  }
+
+  const decodedBytes = Buffer.from(encodedCertificate, "base64");
+  const canonicalBase64 = decodedBytes.toString("base64").replace(/=+$/, "");
+  if (
+    canonicalBase64 !== encodedCertificate.replace(/=+$/, "") ||
+    decodedBytes.length === 0
+  ) {
+    console.error("SUPABASE_DB_SSL_CERT_B64 is not valid Base64.");
+    return undefined;
+  }
+
+  const certificatePem = decodedBytes
+    .toString("utf8")
+    .replace(/\\+r\\+n/g, "\n")
+    .replace(/\\+n/g, "\n")
+    .trim();
+  const certificateBlocks =
+    certificatePem.match(
+      /-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g,
+    ) ?? [];
+  if (certificateBlocks.length !== 1) {
+    console.error(
+      "SUPABASE_DB_SSL_CERT_B64 must decode to exactly one PEM certificate.",
+    );
+    return undefined;
+  }
+
+  let certificate: X509Certificate;
+  try {
+    certificate = new X509Certificate(certificateBlocks[0]);
+  } catch {
+    console.error(
+      "SUPABASE_DB_SSL_CERT_B64 did not decode to a valid X.509 PEM certificate.",
+    );
+    return undefined;
+  }
+
+  const actualFingerprint = certificate.fingerprint256.toUpperCase();
+  console.log(`Decoded certificate SHA-256 fingerprint: ${actualFingerprint}`);
+  if (
+    actualFingerprint.replace(/:/g, "") !==
+    expectedCertificateFingerprint.replace(/:/g, "")
+  ) {
+    console.error(
+      `Certificate fingerprint mismatch; expected ${expectedCertificateFingerprint}. Stopped before connecting.`,
+    );
+    return undefined;
+  }
+
+  return certificateBlocks[0];
 }
 
 async function migrate(): Promise<void> {
@@ -49,33 +110,8 @@ async function migrate(): Promise<void> {
     process.exitCode = 1;
     return;
   }
+  const databaseSslCertificate = getVerifiedDatabaseCertificate();
   if (!databaseSslCertificate) {
-    console.error(
-      "Missing required environment variable SUPABASE_DB_SSL_CERT for verified TLS.",
-    );
-    process.exitCode = 1;
-    return;
-  }
-  if (
-    !databaseSslCertificate.includes("-----BEGIN CERTIFICATE-----") ||
-    !databaseSslCertificate.includes("-----END CERTIFICATE-----")
-  ) {
-    console.error(
-      "SUPABASE_DB_SSL_CERT must contain the full PEM certificate text, including its BEGIN and END lines.",
-    );
-    process.exitCode = 1;
-    return;
-  }
-  const certificateBlock = databaseSslCertificate.match(
-    /-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/,
-  )?.[0];
-  try {
-    if (!certificateBlock) throw new Error("Invalid PEM");
-    new X509Certificate(certificateBlock);
-  } catch {
-    console.error(
-      "SUPABASE_DB_SSL_CERT could not be parsed as an X.509 PEM certificate.",
-    );
     process.exitCode = 1;
     return;
   }

@@ -10,11 +10,11 @@ A social travel discovery app for sharing and finding lesser-known destinations,
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate typed API helpers from OpenAPI
-- Required secrets: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_DB_URL`, `SUPABASE_DB_SSL_CERT`, `SUPABASE_SERVICE_ROLE_KEY`
+- Required secrets: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_DB_URL`, `SUPABASE_DB_SSL_CERT_B64`, `SUPABASE_SERVICE_ROLE_KEY`
 - Later map configuration: `VITE_SATELLITE_TILE_URL` (licensed tile provider)
 
 Do not use Replit Database, Replit Auth, Replit Object Storage, Firebase, or another database/auth system. Supabase is the only application backend.
-`SUPABASE_DB_URL` is for migration tooling only. `SUPABASE_DB_SSL_CERT` holds the root certificate from this Supabase project's Database settings for verified migration TLS. `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be bundled into the frontend.
+`SUPABASE_DB_URL` and `SUPABASE_DB_SSL_CERT_B64` are for migration tooling only. The latter is the Base64-encoded root certificate from the same Supabase project and is fingerprint-checked before verified TLS. `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be bundled into the frontend.
 
 ## Stack
 
