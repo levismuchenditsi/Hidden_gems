@@ -1,5 +1,6 @@
 -- Apply these policies through Supabase Storage > Policies.
 -- The migration connection role does not own storage.objects.
+--Already applied it manually supabase.
 
 CREATE POLICY place_photo_objects_public_or_owner_read
   ON storage.objects FOR SELECT TO anon, authenticated
