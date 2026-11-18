@@ -25,6 +25,18 @@ function getErrorCode(error: unknown): string | undefined {
   return undefined;
 }
 
+function getErrorMessage(error: unknown): string | undefined {
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+  return undefined;
+}
+
 function useVerifiedTlsUrl(connectionString: string): string {
   const url = new URL(connectionString);
   for (const parameter of [...url.searchParams.keys()]) {
@@ -184,8 +196,9 @@ async function migrate(): Promise<void> {
       } catch (error) {
         await client.query("ROLLBACK");
         const code = getErrorCode(error);
+        const message = getErrorMessage(error);
         console.error(
-          `Migration ${filename} failed${code ? ` (database code ${code})` : ""}.`,
+          `Migration ${filename} failed${code ? ` (database code ${code})` : ""}${message ? `: ${message}` : "."}`,
         );
         process.exitCode = 1;
         break;
