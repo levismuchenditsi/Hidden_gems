@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { rootCertificates } from "node:tls";
 import { Pool } from "pg";
 
 const databaseUrl = process.env.SUPABASE_DB_URL;
@@ -75,7 +76,10 @@ async function migrate(): Promise<void> {
 
   const pool = new Pool({
     connectionString: verifiedTlsUrl,
-    ssl: { ca: databaseSslCertificate, rejectUnauthorized: true },
+    ssl: {
+      ca: [...rootCertificates, databaseSslCertificate],
+      rejectUnauthorized: true,
+    },
     max: 1,
   });
 

@@ -1,0 +1,1 @@
+- [Supabase migration TLS](supabase-migration-tls.md) — node-postgres URL SSL options can override explicit CA settings; keep URL and CA matched and never bypass verification.
