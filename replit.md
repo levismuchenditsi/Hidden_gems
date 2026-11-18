@@ -30,6 +30,7 @@ Do not use Replit Database, Replit Auth, Replit Object Storage, Firebase, or ano
 - `artifacts/api-server/src/routes/` and `server/` — Express admin API and database-verified role checks
 - `scripts/migrate.ts` — ordered SQL migration runner
 - `supabase/migrations/` — versioned Supabase schema, RLS, storage, and seed data
+- `supabase/storage-policy-reference.sql` — policies to configure through Supabase Storage > Policies
 - `lib/api-spec/openapi.yaml` — Express API contract
 
 ## Architecture decisions
@@ -38,6 +39,7 @@ Do not use Replit Database, Replit Auth, Replit Object Storage, Firebase, or ano
 - The browser receives only the Supabase URL and anon key; the service-role key stays in the Express server.
 - RLS is the primary authorization boundary; the admin API independently verifies the Supabase JWT and checks `user_roles`.
 - New places default to pending; approval and rejection are privileged operations.
+- Supabase owns `storage.objects`; its RLS is already enabled, but object policies must be added through Supabase Storage > Policies because the migration role is not the table owner.
 
 ## Product
 
