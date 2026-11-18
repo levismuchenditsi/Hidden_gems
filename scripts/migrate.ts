@@ -7,7 +7,7 @@ const databaseUrl = process.env.SUPABASE_DB_URL;
 const databaseSslCertificate = process.env.SUPABASE_DB_SSL_CERT?.replace(
   /\\n/g,
   "\n",
-);
+).trim();
 const migrationDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../supabase/migrations",
@@ -25,6 +25,21 @@ function getErrorCode(error: unknown): string | undefined {
   return undefined;
 }
 
+function useVerifiedTlsUrl(connectionString: string): string {
+  const url = new URL(connectionString);
+  for (const parameter of [
+    "ssl",
+    "sslmode",
+    "sslcert",
+    "sslkey",
+    "sslrootcert",
+    "uselibpqcompat",
+  ]) {
+    url.searchParams.delete(parameter);
+  }
+  return url.toString();
+}
+
 async function migrate(): Promise<void> {
   if (!databaseUrl) {
     console.error("Missing required environment variable SUPABASE_DB_URL.");
@@ -38,9 +53,28 @@ async function migrate(): Promise<void> {
     process.exitCode = 1;
     return;
   }
+  if (
+    !databaseSslCertificate.includes("-----BEGIN CERTIFICATE-----") ||
+    !databaseSslCertificate.includes("-----END CERTIFICATE-----")
+  ) {
+    console.error(
+      "SUPABASE_DB_SSL_CERT must contain the full PEM certificate text, including its BEGIN and END lines.",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  let verifiedTlsUrl: string;
+  try {
+    verifiedTlsUrl = useVerifiedTlsUrl(databaseUrl);
+  } catch {
+    console.error("SUPABASE_DB_URL must be a valid PostgreSQL connection URI.");
+    process.exitCode = 1;
+    return;
+  }
 
   const pool = new Pool({
-    connectionString: databaseUrl,
+    connectionString: verifiedTlsUrl,
     ssl: { ca: databaseSslCertificate, rejectUnauthorized: true },
     max: 1,
   });
