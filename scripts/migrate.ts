@@ -4,6 +4,10 @@ import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 
 const databaseUrl = process.env.SUPABASE_DB_URL;
+const databaseSslCertificate = process.env.SUPABASE_DB_SSL_CERT?.replace(
+  /\\n/g,
+  "\n",
+);
 const migrationDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../supabase/migrations",
@@ -27,10 +31,17 @@ async function migrate(): Promise<void> {
     process.exitCode = 1;
     return;
   }
+  if (!databaseSslCertificate) {
+    console.error(
+      "Missing required environment variable SUPABASE_DB_SSL_CERT for verified TLS.",
+    );
+    process.exitCode = 1;
+    return;
+  }
 
   const pool = new Pool({
     connectionString: databaseUrl,
-    ssl: { rejectUnauthorized: true },
+    ssl: { ca: databaseSslCertificate, rejectUnauthorized: true },
     max: 1,
   });
 
