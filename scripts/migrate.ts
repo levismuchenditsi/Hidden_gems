@@ -1,14 +1,16 @@
 import { readdir, readFile } from "node:fs/promises";
+import { X509Certificate } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { rootCertificates } from "node:tls";
 import { Pool } from "pg";
 
 const databaseUrl = process.env.SUPABASE_DB_URL;
 const databaseSslCertificate = process.env.SUPABASE_DB_SSL_CERT?.replace(
-  /\\n/g,
+  /\\+r\\+n/g,
   "\n",
-).trim();
+)
+  .replace(/\\+n/g, "\n")
+  .trim();
 const migrationDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../supabase/migrations",
@@ -64,6 +66,19 @@ async function migrate(): Promise<void> {
     process.exitCode = 1;
     return;
   }
+  const certificateBlock = databaseSslCertificate.match(
+    /-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/,
+  )?.[0];
+  try {
+    if (!certificateBlock) throw new Error("Invalid PEM");
+    new X509Certificate(certificateBlock);
+  } catch {
+    console.error(
+      "SUPABASE_DB_SSL_CERT could not be parsed as an X.509 PEM certificate.",
+    );
+    process.exitCode = 1;
+    return;
+  }
 
   let verifiedTlsUrl: string;
   try {
@@ -76,10 +91,7 @@ async function migrate(): Promise<void> {
 
   const pool = new Pool({
     connectionString: verifiedTlsUrl,
-    ssl: {
-      ca: [...rootCertificates, databaseSslCertificate],
-      rejectUnauthorized: true,
-    },
+    ssl: { ca: databaseSslCertificate, rejectUnauthorized: true },
     max: 1,
   });
 
